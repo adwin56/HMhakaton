@@ -24,7 +24,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
   Future<void> _loadPOIDetails() async {
   print("Айди POI: ${widget.id}");
   final response = await http.post(
-    Uri.parse('http://192.168.0.25:3000/api/load'),
+    Uri.parse('http://192.168.211.250:3000/api/load'),
     headers: {'Content-Type': 'application/json'},
     body: json.encode({'id': widget.id}),
   );

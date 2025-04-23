@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
+
 import 'location_user.dart';
 import 'go_to_profile.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +41,29 @@ class _MapPageState extends State<MapPage> {
       onEnter50m: (poi) => _showPOIModal(context, poi.toJson()),
     );
   }
+
+  Future<void> updateMarkersFromLocation(Position position) async {
+    print('📍 Calling fetchPOIsFromPosition with: lat=${position.latitude}, lon=${position.longitude}');
+
+    final locationService = LocationService();
+    final markers = await locationService.fetchPOIsFromPosition(position);
+
+    print('📍 Got ${markers.length} POIs');
+
+    setState(() {
+      _markers2 = markers.map((poi) => Marker(
+        point: poi.location,
+        width: 40,
+        height: 40,
+        child: Image.network(poi.logo),
+      )).toList();
+    });
+
+    print("📍 Final markers (converted to flutter_map): ${_markers2.length}");
+  }
+
+
+
 
   Marker _buildMarker(POI poi) {
     return Marker(
@@ -204,7 +229,7 @@ class _MapPageState extends State<MapPage> {
                             .toList()
                         : [],
               ),
-              //MarkerLayer(markers: _markers2),
+              MarkerLayer(markers: _markers2),
             ],
           ),
           Positioned(
@@ -370,72 +395,55 @@ class _MapPageState extends State<MapPage> {
 
   // Функция для загрузки данных с бэкенда
   Future<void> _loadCategoryData(
-    BuildContext context,
-    String category,
-    String iconPath,
-  ) async {
+      BuildContext context,
+      String category,
+      String iconPath,
+      ) async {
     print("Загружаем данные для категории: $category");
 
     final response = await http.post(
-      Uri.parse('http://192.168.0.25:3000/api/load-from-all'),
+      Uri.parse('http://192.168.211.250:3000/api/load-from-all'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'category': category}),
     );
-    print("Полученные маркеры: $_markers");
-    print("Маркеры, переданные в MarkerLayer: $_markers");
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final markers = data['markers'];
+      final decoded = json.decode(response.body);
 
-      final parsedMarkers =
-          markers
-              .map((raw) {
-                final regex = RegExp(
-                  r'\((\d+),("?[^,"]*"?),"([^"]*)",([^,]*),"({.*})"\)',
-                );
+      // Проверка на наличие данных по ключу "markers"
+      if (decoded['markers'] != null && decoded['markers'] is List) {
+        final List<dynamic> markers = decoded['markers'];
 
-                final match = regex.firstMatch(raw['row']);
+        final parsedMarkers = markers.map((poi) {
+          return {
+            'id': poi['id'],
+            'name': poi['name'],
+            'description': poi['description'] ?? 'Описание отсутствует',
+            'logo': poi['logo'],
+            'location': {
+              'lat': poi['location']['lat'],
+              'lon': poi['location']['lon'],
+            },
+          };
+        }).toList();
+        print("Ответ от сервера:");
+        print(parsedMarkers);
+        setState(() {
+          _markers = parsedMarkers;
+          _categoryIcon = iconPath;
+          _isCategorySelected = true;
+        });
 
-                if (match != null) {
-                  final id = int.parse(match.group(1)!);
-                  final name = match.group(2)!;
-                  final description = match.group(3)!;
-                  final imageUrl = match.group(4)!;
-                  final locationJson = match.group(5)!;
-
-                  final cleanedLocationJson = locationJson.replaceAll(
-                    '""',
-                    '"',
-                  );
-                  final location = json.decode(cleanedLocationJson);
-
-                  return {
-                    'id': id,
-                    'name': name,
-                    'description': description,
-                    'logo': imageUrl,
-                    'location': location,
-                  };
-                } else {
-                  print('Не удалось распарсить строку: ${raw['row']}');
-                  return null;
-                }
-              })
-              .whereType<Map<String, dynamic>>()
-              .toList();
-
-      setState(() {
-        _markers = parsedMarkers;
-        _categoryIcon = iconPath;
-        _isCategorySelected = true;
-      });
-
-      if (markers.isNotEmpty) {
-        _panelController.animatePanelToPosition(0.5);
+        if (parsedMarkers.isNotEmpty) {
+          _panelController.animatePanelToPosition(0.5);
+        } else {
+          print("Не найдено POI для категории: $category");
+        }
       } else {
-        print("Не найдено POI для категории: $category");
+        print("Ошибка: данные не найдены или неверный формат данных");
       }
+    } else {
+      print("Ошибка при загрузке POI: ${response.statusCode}");
     }
   }
 }
