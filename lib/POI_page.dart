@@ -24,7 +24,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
   Future<void> _loadPOIDetails() async {
   print("Айди POI: ${widget.id}");
   final response = await http.post(
-    Uri.parse('http://192.168.211.250:3000/api/load'),
+    Uri.parse('http://192.168.0.25:3000/api/load'),
     headers: {'Content-Type': 'application/json'},
     body: json.encode({'id': widget.id}),
   );
@@ -36,32 +36,44 @@ class _POIDetailPageState extends State<POIDetailPage> {
     final row = data['marker']['row'];
 
     // Обновленное регулярное выражение для более точного парсинга
-    final regex = RegExp(
-  r'\(([^,]+),\"([^\"]+)\",([^\"]+),([^\"]+),\{\},\"({.*})\"\)',
-);
+    // 1) Новое регулярное выражение:
+//  8: locJson (в кавычках, может содержать запятые)
+final regex = RegExp(r'^\((\d+),([^,]+),(?:"([^"]*)"|([^,]*)),(?:"([^"]+)"|([^,]+)),([^,]+),"(.*)"\)$');
 
-    final match = regex.firstMatch(row);
+//final row = data['marker']['row']; /* ваша строка row из ответа сервера */
 
-    if (match != null) {
-      final name = match.group(1)!;
-      final description = match.group(2)!;
-      final imageUrl = match.group(3)!;
-      final category = match.group(4)!;
+final match = regex.firstMatch(row);
+if (match != null) {
+  final id          = int.parse(match.group(1)!);
+  final name        = match.group(2)!;
+  // description может быть в группе 3 (если были кавычки) или в 4 (если не было)
+  final description = match.group(3) ?? match.group(4)!;
+  // imageUrl — в 5 или в 6
+  final imageUrl    = match.group(5) ?? match.group(6)!;
+  final category    = match.group(7)!;
+  var locJson       = match.group(8)!;
 
+  // locJson приходит с двойным экранированием \"\"
+  locJson = locJson.replaceAll('\"\"', '"');
 
-      setState(() {
-        _poiDetails = {
-          'name': name,
-          'description': description,
-          'imageUrl': imageUrl,
-          'category': category,
-        };
-      });
-    } else {
-      print('Не удалось распарсить данные');
-    }
-  } else {
-    print('Ошибка загрузки POI с кодом: ${response.statusCode}');
+  // Теперь распарсим JSON локации
+  final locMap = json.decode(locJson) as Map<String, dynamic>;
+  final lon = (locMap['lon'] as num).toDouble();
+  final lat = (locMap['lat'] as num).toDouble();
+
+  setState(() {
+    _poiDetails = {
+      'name':        name,
+      'description': description,
+      'imageUrl':    imageUrl,
+      'category':    category,
+      'lon':         lon,
+      'lat':         lat,
+    };
+  });
+} else {
+  print('Не удалось распарсить данные строкой: $row');
+}
   }
 }
 

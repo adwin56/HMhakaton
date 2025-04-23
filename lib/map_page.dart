@@ -1,15 +1,55 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:geolocator/geolocator.dart';
-
-import 'location_user.dart';
+import 'leaderboard.dart';
 import 'go_to_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'POI_page.dart'; // Импортируем экран подробной информации о POI
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
+
+// Определяем модель POI
+class POI {
+  final int id;
+  final String name;
+  final String logo;
+  final LatLng location;
+
+  POI({
+    required this.id,
+    required this.name,
+    required this.logo,
+    required this.location,
+  });
+
+  /// Преобразует объект POI обратно в Map
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'logo': logo,
+      'location': {
+        'lat': location.latitude,
+        'lon': location.longitude,
+      },
+    };
+  }
+
+  factory POI.fromJson(Map<String, dynamic> json) {
+    return POI(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      logo: json['logo'] as String,
+      location: LatLng(
+        (json['location']['lon'] as num).toDouble(),
+        (json['location']['lat'] as num).toDouble(),
+      ),
+    );
+  }
+}
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -20,138 +60,144 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   List<dynamic> _markers = [];
-  List<dynamic> _categories = []; // Список категорий
+  //List<dynamic> _categories = []; // Список категорий
   final PanelController _panelController =
-      PanelController(); // Контроллер слайдера
+  PanelController(); // Контроллер слайдера
   bool _isCategorySelected = false; // Проверка, выбрана ли категория
-  List<Marker> _markers2 = [];
-
+  // Сколько раз показывали 100м-модалку для poi.id
+  final Map<int,int> _count100m = {};
+  // Время последнего показа 100м-модалки для poi.id
+  final Map<int,DateTime> _last100m = {};
+  List<POI> _pois = [];
   String? _categoryIcon;
+  Timer? _timer;
+   final Distance _distance = Distance();
+   
   @override
   void initState() {
     super.initState();
-    // Запускаем сервис отслеживания позиции и обработки POI
-    LocationService().start(
-      onAddPOI: (poi) => setState(() => _markers.add(_buildMarker(poi))),
-      onRemovePOI:
-          (poi) => setState(
-            () => _markers.removeWhere((m) => m.point == poi.location),
-          ),
-      onEnter100m: (poi) => _showPOIModal(context, poi.toJson()),
-      onEnter50m: (poi) => _showPOIModal(context, poi.toJson()),
+    _timer = Timer.periodic(Duration(seconds: 10), (_) => _updatePOIsAndCheck());
+  }
+
+  // Метод для получения POI по текущей позиции
+  Future<void> _updatePOIsAndCheck() async {
+    // 1) Получаем новые POI
+    Position pos = await Geolocator.getCurrentPosition();
+    final resp = await http.post(
+      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
+      headers: {'Content-Type':'application/json'},
+      body: json.encode({'lat':pos.latitude,'lon':pos.longitude}),
     );
+    if (resp.statusCode != 200) return;
+    final data = json.decode(resp.body);
+    final list = (data['markers'] as List).map((e) => POI.fromJson(e)).toList();
+    setState(() => _pois = list);
+
+    // 2) Для каждого POI проверяем дистанцию и при необходимости показываем модалку
+    final now = DateTime.now();
+    for (var poi in _pois) {
+      final d = _distance(
+        LatLng(pos.latitude, pos.longitude),
+        poi.location
+      );
+      if (d <= 100) {
+        final count = _count100m[poi.id] ?? 0;
+        final last = _last100m[poi.id];
+        // если ещё не показывали два раза, и либо никогда не показывали, либо прошло >=3мин
+        if (count < 2 && (last==null || now.difference(last) >= Duration(minutes:3))) {
+          // показываем
+          _showPOIModal(context, poi);
+          _count100m[poi.id] = count + 1;
+          _last100m[poi.id] = now;
+        }
+      }
+    }
   }
 
-  Future<void> updateMarkersFromLocation(Position position) async {
-    print('📍 Calling fetchPOIsFromPosition with: lat=${position.latitude}, lon=${position.longitude}');
-
-    final locationService = LocationService();
-    final markers = await locationService.fetchPOIsFromPosition(position);
-
-    print('📍 Got ${markers.length} POIs');
-
-    setState(() {
-      _markers2 = markers.map((poi) => Marker(
-        point: poi.location,
-        width: 40,
-        height: 40,
-        child: Image.network(poi.logo),
-      )).toList();
-    });
-
-    print("📍 Final markers (converted to flutter_map): ${_markers2.length}");
-  }
-
-
-
-
-  Marker _buildMarker(POI poi) {
-    return Marker(
-      width: 50.0,
-      height: 50.0,
-      point: poi.location,
-      child: GestureDetector(
-        onTap: () => _showPOIModal(context, poi.toJson()),
-        child: Image.asset(
-          _categoryIcon ?? 'assets/icons/default.png',
-          width: 40,
-          height: 40,
+  // Преобразование POI в маркеры для отображения на карте
+  List<Marker> _buildMarkers() {
+    return _pois.map((poi) {
+      return Marker(
+        width: 50.0,
+        height: 50.0,
+        point: poi.location, // Используем местоположение POI
+        child: GestureDetector(
+          onTap: () {
+            _showPOIModal(
+              context,
+              poi,
+            ); // Показать модальное окно с подробностями POI
+          },
+          child: Image.asset(
+            'assets/images/place.png', // Иконка для POI
+            width: 40,
+            height: 40,
+          ),
         ),
-      ),
-    );
+      );
+    }).toList();
   }
 
-  void _showPOIModal(BuildContext context, dynamic poi) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+ void _showPOIModal(BuildContext context, dynamic poi) {
+  // Приводим к Map<String,dynamic>
+  final Map<String, dynamic> data = poi is POI 
+    ? poi.toJson()                     // ← теперь toJson() есть  
+    : Map<String, dynamic>.from(poi);
+
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              data['name'], // теперь безопасно
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                data['logo'],
+                width: 250,
+                height: 150,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Text(
-                  poi['name'],
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300]),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Позже", style: TextStyle(color: Colors.black)),
                 ),
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    poi['logo'],
-                    width: 250,
-                    height: 150,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(
+                        builder: (_) => POIDetailPage(id: data['id']),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context); // Закрыть модалку
-                      },
-                      child: const Text(
-                        "Позже",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Сначала закрыть модалку
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => POIDetailPage(
-                                  id: poi['id'],
-                                ), // Передаем только ID
-                          ),
-                        );
-                      },
-                      child: const Text("Перейти"),
-                    ),
-                  ],
+                    );
+                  },
+                  child: const Text("Перейти"),
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +275,7 @@ class _MapPageState extends State<MapPage> {
                             .toList()
                         : [],
               ),
-              MarkerLayer(markers: _markers2),
+              MarkerLayer(markers: _buildMarkers()),
             ],
           ),
           Positioned(
@@ -237,6 +283,29 @@ class _MapPageState extends State<MapPage> {
             right: 16,
             child: GoToProfileButton(xp: 10, maxXp: 100),
           ),
+          Positioned(
+      top: 16,
+      left: 16,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          shape: CircleBorder(),
+          padding: EdgeInsets.all(12),
+          backgroundColor: Colors.white.withOpacity(0.8),
+          elevation: 4,
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => LeaderboardPage()),
+          );
+        },
+        child: Icon(
+          Icons.emoji_events,           // иконка трофея
+          color: Colors.orange[800],
+          size: 35,
+        ),
+      ),
+    ),
           SlidingUpPanel(
             controller: _panelController, // Контроллер слайдера
             minHeight: 100,
@@ -395,14 +464,14 @@ class _MapPageState extends State<MapPage> {
 
   // Функция для загрузки данных с бэкенда
   Future<void> _loadCategoryData(
-      BuildContext context,
-      String category,
-      String iconPath,
-      ) async {
+    BuildContext context,
+    String category,
+    String iconPath,
+  ) async {
     print("Загружаем данные для категории: $category");
 
     final response = await http.post(
-      Uri.parse('http://192.168.211.250:3000/api/load-from-all'),
+      Uri.parse('http://192.168.0.25:3000/api/load-from-all'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'category': category}),
     );
@@ -415,17 +484,17 @@ class _MapPageState extends State<MapPage> {
         final List<dynamic> markers = decoded['markers'];
 
         final parsedMarkers = markers.map((poi) {
-          return {
-            'id': poi['id'],
-            'name': poi['name'],
-            'description': poi['description'] ?? 'Описание отсутствует',
-            'logo': poi['logo'],
-            'location': {
-              'lat': poi['location']['lat'],
-              'lon': poi['location']['lon'],
-            },
-          };
-        }).toList();
+              return {
+    'id': poi['id'],
+    'name': poi['name'],
+                'description': poi['description'] ?? 'Описание отсутствует',
+                'logo': poi['logo'],
+                'location': {
+                  'lat': poi['location']['lat'],
+                  'lon': poi['location']['lon'],
+                },
+              };
+            }).toList();
         print("Ответ от сервера:");
         print(parsedMarkers);
         setState(() {
@@ -445,5 +514,12 @@ class _MapPageState extends State<MapPage> {
     } else {
       print("Ошибка при загрузке POI: ${response.statusCode}");
     }
+  }
+
+  @override
+  void dispose() {
+    // Останавливаем таймер при закрытии экрана
+    _timer?.cancel();
+    super.dispose();
   }
 }

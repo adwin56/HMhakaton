@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+/*import 'dart:async';
 
 /// Model for a Point of Interest
 class POI {
@@ -123,7 +123,7 @@ class LocationService {
     print('Request body to /find-by-position: ${json.encode(requestBody)}');
 
     final response = await http.post(
-      Uri.parse('http://192.168.211.250:3000/api/find-by-position'),
+      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(requestBody),
     );
@@ -195,7 +195,7 @@ class LocationService {
 
   Future<List<POI>> fetchPOIsFromPosition(Position position) async {
     final response = await http.post(
-      Uri.parse('http://192.168.211.250:3000/api/find-by-position'),
+      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'lat': position.latitude, 'lon': position.longitude}),
     );
@@ -221,7 +221,7 @@ class LocationService {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.211.250:3000/api/find-by-position'),
+        Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestBody),
       );
@@ -270,3 +270,4 @@ class LocationService {
     _timer?.cancel();
   }
 }
+*/
