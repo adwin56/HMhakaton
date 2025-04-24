@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'POI_page.dart'; 
 import 'leaderboard.dart';
 import 'go_to_profile.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,6 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'POI_page.dart'; // Импортируем экран подробной информации о POI
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
 // Определяем модель POI
