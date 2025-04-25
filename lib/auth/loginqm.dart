@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:hmhakaton/auth/initial.dart';
+import 'package:cityquest/auth/initial.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hmhakaton/auth/myprofile.dart';
+import 'package:cityquest/auth/myprofile.dart';
 
 class LoginQM extends StatefulWidget {
   const LoginQM({super.key});
@@ -129,7 +129,7 @@ class _LoginQMState extends State<LoginQM> {
                 children: [
                   // SVG логотип
                   SvgPicture.asset(
-                    'assets/icons/IconLogoPage.svg',
+                    'assets/IconLogoPage.svg',
                     height: 160,
                   ),
                   const SizedBox(height: 1),

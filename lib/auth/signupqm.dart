@@ -3,7 +3,7 @@ import 'initial.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:hmhakaton/map_page.dart';
+import 'package:cityquest/map_page.dart';
 import 'loginqm.dart'; // Импорт страницы логина
 
 
@@ -154,7 +154,7 @@ class _SignupQMState extends State<SignupQM> {
                 children: [
                   // SVG логотип
                   SvgPicture.asset(
-                    'assets/icons/IconLogoPage.svg',
+                    'assets/IconLogoPage.svg',
                     height: 160,
                   ),
                   const SizedBox(height: 1),

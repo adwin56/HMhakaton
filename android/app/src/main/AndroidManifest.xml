@@ -10,7 +10,7 @@
 
 
     <application
-        android:label="hmhakaton"
+        android:label="CityQuest"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
