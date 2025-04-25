@@ -19,7 +19,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
   // Функция для отправки запроса и загрузки данных
   Future<void> _loadLeaders() async {
-    final uri = Uri.parse('http://192.168.211.250:3000/api/get-leaders');
+    final uri = Uri.parse('http://31.163.205.174:3000/api/get-leaders');
     try {
       final response = await http.post(uri);
 
@@ -42,18 +42,19 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   void _showError(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Ошибка'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).pop();
-            },
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Ошибка'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context, rootNavigator: true).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -65,22 +66,30 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
-      body: _leaders.isEmpty
-          ? const Center(child: CircularProgressIndicator()) // Показываем индикатор загрузки
-          : SingleChildScrollView(
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Имя')),
-            DataColumn(label: Text('XP')),
-          ],
-          rows: _leaders
-              .map((leader) => DataRow(cells: [
-            DataCell(Text(leader['name'])),
-            DataCell(Text(leader['xp'].toString())),
-          ]))
-              .toList(),
-        ),
-      ),
+      body:
+          _leaders.isEmpty
+              ? const Center(
+                child: CircularProgressIndicator(),
+              ) // Показываем индикатор загрузки
+              : SingleChildScrollView(
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Имя')),
+                    DataColumn(label: Text('XP')),
+                  ],
+                  rows:
+                      _leaders
+                          .map(
+                            (leader) => DataRow(
+                              cells: [
+                                DataCell(Text(leader['name'])),
+                                DataCell(Text(leader['xp'].toString())),
+                              ],
+                            ),
+                          )
+                          .toList(),
+                ),
+              ),
     );
   }
 }

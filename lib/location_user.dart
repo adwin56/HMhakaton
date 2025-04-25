@@ -123,7 +123,7 @@ class LocationService {
     print('Request body to /find-by-position: ${json.encode(requestBody)}');
 
     final response = await http.post(
-      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
+      Uri.parse('http://31.163.205.174:3000/api/find-by-position'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(requestBody),
     );
@@ -190,12 +190,12 @@ class LocationService {
     }
 
     // Now return the list of markers to use elsewhere
-    return markerList;
+    return markerList;55
   }
 
   Future<List<POI>> fetchPOIsFromPosition(Position position) async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
+      Uri.parse('http://31.163.205.174:3000/api/find-by-position'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'lat': position.latitude, 'lon': position.longitude}),
     );
@@ -221,7 +221,7 @@ class LocationService {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
+        Uri.parse('http://31.163.205.174:3000/api/find-by-position'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestBody),
       );

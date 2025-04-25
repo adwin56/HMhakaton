@@ -1,8 +1,8 @@
 import 'dart:convert';
+import 'initial.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'initial.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -32,12 +32,9 @@ class _GalleryPageState extends State<GalleryPage> {
 
     print("Токен перед отправкой запроса: $token");
 
-    final requestBody = jsonEncode({
-      "id": -1,
-      "token": token,
-    });
+    final requestBody = jsonEncode({"id": -1, "token": token});
 
-    final checkTokenUrl = Uri.parse('http://192.168.211.250:3000/api/get-user');
+    final checkTokenUrl = Uri.parse('http://31.163.205.174:3000/api/get-user');
 
     final response = await http.post(
       checkTokenUrl,
@@ -53,11 +50,12 @@ class _GalleryPageState extends State<GalleryPage> {
 
       if (imagesString is String) {
         setState(() {
-          _imageUrls = imagesString
-              .split(';')
-              .map((url) => url.trim())
-              .where((url) => url.isNotEmpty)
-              .toList();
+          _imageUrls =
+              imagesString
+                  .split(';')
+                  .map((url) => url.trim())
+                  .where((url) => url.isNotEmpty)
+                  .toList();
           _isLoading = false;
         });
       } else {
@@ -108,21 +106,22 @@ class _GalleryPageState extends State<GalleryPage> {
       appBar: AppBar(title: const Text('Галерея')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _imageUrls.isEmpty
-            ? const Center(child: Text("Нет изображений"))
-            : GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: _imageUrls.length,
-          itemBuilder: (context, index) {
-            return _buildImageItem(_imageUrls[index]);
-          },
-        ),
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _imageUrls.isEmpty
+                ? const Center(child: Text("Нет изображений"))
+                : GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: _imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return _buildImageItem(_imageUrls[index]);
+                  },
+                ),
       ),
     );
   }
@@ -146,7 +145,11 @@ class FullScreenImagePage extends StatelessWidget {
             child: Image.network(
               imageUrl,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.broken_image, color: Colors.white, size: 100);
+                return const Icon(
+                  Icons.broken_image,
+                  color: Colors.white,
+                  size: 100,
+                );
               },
             ),
           ),

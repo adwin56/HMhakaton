@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'POI_page.dart'; 
+import 'POI_page.dart';
 import 'leaderboard.dart';
 import 'go_to_profile.dart';
 import 'package:flutter/material.dart';
@@ -31,10 +31,7 @@ class POI {
       'id': id,
       'name': name,
       'logo': logo,
-      'location': {
-        'lat': location.latitude,
-        'lon': location.longitude,
-      },
+      'location': {'lat': location.latitude, 'lon': location.longitude},
     };
   }
 
@@ -62,21 +59,24 @@ class _MapPageState extends State<MapPage> {
   List<dynamic> _markers = [];
   //List<dynamic> _categories = []; // Список категорий
   final PanelController _panelController =
-  PanelController(); // Контроллер слайдера
+      PanelController(); // Контроллер слайдера
   bool _isCategorySelected = false; // Проверка, выбрана ли категория
   // Сколько раз показывали 100м-модалку для poi.id
-  final Map<int,int> _count100m = {};
+  final Map<int, int> _count100m = {};
   // Время последнего показа 100м-модалки для poi.id
-  final Map<int,DateTime> _last100m = {};
+  final Map<int, DateTime> _last100m = {};
   List<POI> _pois = [];
   String? _categoryIcon;
   Timer? _timer;
-   final Distance _distance = Distance();
-   
+  final Distance _distance = Distance();
+
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(Duration(seconds: 10), (_) => _updatePOIsAndCheck());
+    _timer = Timer.periodic(
+      Duration(seconds: 10),
+      (_) => _updatePOIsAndCheck(),
+    );
   }
 
   // Метод для получения POI по текущей позиции
@@ -84,9 +84,9 @@ class _MapPageState extends State<MapPage> {
     // 1) Получаем новые POI
     Position pos = await Geolocator.getCurrentPosition();
     final resp = await http.post(
-      Uri.parse('http://192.168.211.250:3000/api/find-by-position'),
-      headers: {'Content-Type':'application/json'},
-      body: json.encode({'lat':pos.latitude,'lon':pos.longitude}),
+      Uri.parse('http://31.163.205.174:3000/api/find-by-position'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'lat': pos.latitude, 'lon': pos.longitude}),
     );
     if (resp.statusCode != 200) return;
     final data = json.decode(resp.body);
@@ -96,15 +96,13 @@ class _MapPageState extends State<MapPage> {
     // 2) Для каждого POI проверяем дистанцию и при необходимости показываем модалку
     final now = DateTime.now();
     for (var poi in _pois) {
-      final d = _distance(
-        LatLng(pos.latitude, pos.longitude),
-        poi.location
-      );
+      final d = _distance(LatLng(pos.latitude, pos.longitude), poi.location);
       if (d <= 100) {
         final count = _count100m[poi.id] ?? 0;
         final last = _last100m[poi.id];
         // если ещё не показывали два раза, и либо никогда не показывали, либо прошло >=3мин
-        if (count < 2 && (last==null || now.difference(last) >= Duration(minutes:3))) {
+        if (count < 2 &&
+            (last == null || now.difference(last) >= Duration(minutes: 3))) {
           // показываем
           _showPOIModal(context, poi);
           _count100m[poi.id] = count + 1;
@@ -138,65 +136,79 @@ class _MapPageState extends State<MapPage> {
     }).toList();
   }
 
- void _showPOIModal(BuildContext context, dynamic poi) {
-  // Приводим к Map<String,dynamic>
-  final Map<String, dynamic> data = poi is POI 
-    ? poi.toJson()                     // ← теперь toJson() есть  
-    : Map<String, dynamic>.from(poi);
+  void _showPOIModal(BuildContext context, dynamic poi) {
+    // Приводим к Map<String,dynamic>
+    final Map<String, dynamic> data =
+        poi is POI
+            ? poi
+                .toJson() // ← теперь toJson() есть
+            : Map<String, dynamic>.from(poi);
 
-  showDialog(
-    context: context,
-    builder: (ctx) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              data['name'], // теперь безопасно
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                data['logo'],
-                width: 250,
-                height: 150,
-                fit: BoxFit.cover,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    data['name'], // теперь безопасно
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      data['logo'],
+                      width: 250,
+                      height: 150,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text(
+                          "Позже",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.push(
+                            ctx,
+                            MaterialPageRoute(
+                              builder: (_) => POIDetailPage(id: data['id']),
+                            ),
+                          );
+                        },
+                        child: const Text("Перейти"),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300]),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text("Позже", style: TextStyle(color: Colors.black)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      ctx,
-                      MaterialPageRoute(
-                        builder: (_) => POIDetailPage(id: data['id']),
-                      ),
-                    );
-                  },
-                  child: const Text("Перейти"),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,28 +294,28 @@ class _MapPageState extends State<MapPage> {
             child: GoToProfileButton(xp: 10, maxXp: 100),
           ),
           Positioned(
-      top: 16,
-      left: 16,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          shape: CircleBorder(),
-          padding: EdgeInsets.all(12),
-          backgroundColor: Colors.white.withOpacity(0.8),
-          elevation: 4,
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => LeaderboardPage()),
-          );
-        },
-        child: Icon(
-          Icons.emoji_events,           // иконка трофея
-          color: Colors.orange[800],
-          size: 35,
-        ),
-      ),
-    ),
+            top: 16,
+            left: 16,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: CircleBorder(),
+                padding: EdgeInsets.all(12),
+                backgroundColor: Colors.white.withOpacity(0.8),
+                elevation: 4,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => LeaderboardPage()),
+                );
+              },
+              child: Icon(
+                Icons.emoji_events, // иконка трофея
+                color: Colors.orange[800],
+                size: 35,
+              ),
+            ),
+          ),
           SlidingUpPanel(
             controller: _panelController, // Контроллер слайдера
             minHeight: 100,
@@ -469,7 +481,7 @@ class _MapPageState extends State<MapPage> {
     print("Загружаем данные для категории: $category");
 
     final response = await http.post(
-      Uri.parse('http://192.168.211.250:3000/api/load-from-all'),
+      Uri.parse('http://31.163.205.174:3000/api/load-from-all'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'category': category}),
     );
@@ -481,10 +493,11 @@ class _MapPageState extends State<MapPage> {
       if (decoded['markers'] != null && decoded['markers'] is List) {
         final List<dynamic> markers = decoded['markers'];
 
-        final parsedMarkers = markers.map((poi) {
+        final parsedMarkers =
+            markers.map((poi) {
               return {
-    'id': poi['id'],
-    'name': poi['name'],
+                'id': poi['id'],
+                'name': poi['name'],
                 'description': poi['description'] ?? 'Описание отсутствует',
                 'logo': poi['logo'],
                 'location': {
