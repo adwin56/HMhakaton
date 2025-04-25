@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'initial.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -13,15 +14,23 @@ class GalleryPage extends StatefulWidget {
 class _GalleryPageState extends State<GalleryPage> {
   List<String> _imageUrls = [];
   bool _isLoading = true;
+  String? token; // Переменная для токена
 
   @override
   void initState() {
     super.initState();
+    // Получаем токен и загружаем изображения
+    token = TokenManager.token;
     _loadImages();
   }
 
   Future<void> _loadImages() async {
-    String token = await _getTokenFromStorage();
+    if (token == null) {
+      print("Токен не найден");
+      return;
+    }
+
+    print("Токен перед отправкой запроса: $token");
 
     final requestBody = jsonEncode({
       "id": -1,
@@ -35,6 +44,8 @@ class _GalleryPageState extends State<GalleryPage> {
       headers: {'Content-Type': 'application/json'},
       body: requestBody,
     );
+
+    debugPrint("Ответ сервера: ${response.body}");
 
     if (response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
@@ -100,18 +111,18 @@ class _GalleryPageState extends State<GalleryPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _imageUrls.isEmpty
-                ? const Center(child: Text("Нет изображений"))
-                : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: _imageUrls.length,
-                    itemBuilder: (context, index) {
-                      return _buildImageItem(_imageUrls[index]);
-                    },
-                  ),
+            ? const Center(child: Text("Нет изображений"))
+            : GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: _imageUrls.length,
+          itemBuilder: (context, index) {
+            return _buildImageItem(_imageUrls[index]);
+          },
+        ),
       ),
     );
   }

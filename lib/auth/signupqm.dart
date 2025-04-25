@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:hmhakaton/map_page.dart';
 import 'package:http/http.dart' as http;
 import 'initial.dart';
-import 'main.dart'; // Чтобы вернуться на главную
 import 'loginqm.dart'; // Импорт страницы логина
 
 class SignupQM extends StatefulWidget {
@@ -51,7 +51,7 @@ class _SignupQMState extends State<SignupQM> {
         // Ждем немного и переходим на главную страницу
         Future.delayed(const Duration(seconds: 2), () {
           Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => const MyHomePage()));
+              context, MaterialPageRoute(builder: (_) => const MapPage()));
         });
       } else {
         setState(() {

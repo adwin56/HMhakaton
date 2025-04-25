@@ -5,6 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:mime/mime.dart';  // Добавляем импорт
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'auth/initial.dart';
 
 class POIDetailPage extends StatefulWidget {
   final int id;
@@ -191,14 +194,30 @@ class _POIDetailPageState extends State<POIDetailPage> {
     }
   }
 
+  // Функция для получения токена из SharedPreferences
+  Future<String> _getTokenFromStorage() async {
+    String? token = TokenManager.token;
+    if (token != null) {
+      return token;  // Возвращаем токен, если он не null
+    } else {
+      throw Exception("Токен не найден");  // Выбрасываем ошибку, если токен не найден
+    }
+  }
+
+
+
   Future<void> _startTask() async {
     print('Отправка запроса на /api/start-task');
+
+    // Получаем токен из SharedPreferences
+    final token = await _getTokenFromStorage();
+
     final response = await http.post(
       Uri.parse('http://192.168.211.250:3000/api/start-task'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'id': widget.id,
-        'token': '9686621a-b030-4d4c-b1c4-88870f592893',
+        'token': token,
       }),
     );
 
@@ -235,6 +254,8 @@ class _POIDetailPageState extends State<POIDetailPage> {
       _showError('Ошибка подключения: ${response.statusCode}');
     }
   }
+
+
 
 
   Future<void> _endTask({required int answer, File? image}) async {
