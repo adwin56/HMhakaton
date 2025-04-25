@@ -95,36 +95,46 @@ class _MyProfileState extends State<MyProfile> {
   }
 
   Future<void> _fetchAndUpdateProfile() async {
-    if (_token == null) return;
+  if (_token == null) return;
 
-    final checkTokenUrl = Uri.parse('http://31.163.205.174:3000/api/get-user');
-    final checkResponse = await http.post(
-      checkTokenUrl,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id': -1, 'token': _token}),
+  final checkTokenUrl = Uri.parse('http://31.163.205.174:3000/api/get-user');
+  final checkResponse = await http.post(
+    checkTokenUrl,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'id': -1, 'token': _token}),
+  );
+
+  final checkData = jsonDecode(checkResponse.body);
+  print('Ответ от сервера: $checkData'); // Для отладки
+
+  if (checkData['status']?['ok'] != true) {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginQM()),
     );
-
-    final checkData = jsonDecode(checkResponse.body);
-
-    if (checkData['status']?['ok'] != true) {
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginQM()),
-      );
-      return;
-    }
-
-    final user = checkData['user'];
-    setState(() {
-      _login = user['name'] ?? 'Имя не указано';
-      _xp = user['xp'] ?? 0;
-      _avatarUrl = user['avatar'];
-      _achievementsCount = user['achievements_count'] ?? 0;
-      _photosCount = user['photos_count'] ?? 0;
-      _fullResponse = const JsonEncoder.withIndent('  ').convert(checkData);
-    });
+    return;
   }
+
+  final user = checkData['user'];
+
+  // Подсчитываем количество достижений и фотографий по массивам
+  final achievements = user['achievements'] ?? [];
+  final photos = user['photos'] ?? [];
+
+  setState(() {
+    _login = user['name'] ?? 'Имя не указано';
+    _xp = user['xp'] ?? 0;
+    _avatarUrl = user['avatar'];
+
+    // Подсчитываем количество элементов в массивах
+    _achievementsCount = achievements.length;
+    _photosCount = photos.length;
+
+    _fullResponse = const JsonEncoder.withIndent('  ').convert(checkData);
+  });
+}
+
 
   Future<void> _loadAvatar() async {
     final prefs = await SharedPreferences.getInstance();
