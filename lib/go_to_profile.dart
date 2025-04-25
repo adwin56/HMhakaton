@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'auth/myprofile.dart';
+
 /// Виджет-кнопка профиля с отображением прогресса XP вокруг аватарки.
 class GoToProfileButton extends StatelessWidget {
   /// Текущий опыт пользователя.
@@ -32,7 +34,7 @@ class GoToProfileButton extends StatelessWidget {
         // Навигация на страницу профиля
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
+          MaterialPageRoute(builder: (_) => const MyProfile()),
         );
       },
       child: SizedBox(
