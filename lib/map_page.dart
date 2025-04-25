@@ -84,7 +84,7 @@ class _MapPageState extends State<MapPage> {
     // 1) Получаем новые POI
     Position pos = await Geolocator.getCurrentPosition();
     final resp = await http.post(
-      Uri.parse('http://192.168.0.25:3000/api/find-by-position'),
+      Uri.parse('http://192.168.211.250:3000/api/find-by-position'),
       headers: {'Content-Type':'application/json'},
       body: json.encode({'lat':pos.latitude,'lon':pos.longitude}),
     );
@@ -471,7 +471,7 @@ class _MapPageState extends State<MapPage> {
     print("Загружаем данные для категории: $category");
 
     final response = await http.post(
-      Uri.parse('http://192.168.0.25:3000/api/load-from-all'),
+      Uri.parse('http://192.168.211.250:3000/api/load-from-all'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'category': category}),
     );
