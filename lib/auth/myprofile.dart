@@ -77,9 +77,7 @@ class _MyProfileState extends State<MyProfile> {
     );
     request.files.add(multipartFile);
 
-    request.headers.addAll({
-      'Content-Type': 'multipart/form-data',
-    });
+    request.headers.addAll({'Content-Type': 'multipart/form-data'});
 
     final response = await request.send();
     final respStr = await response.stream.bytesToString();
@@ -105,8 +103,6 @@ class _MyProfileState extends State<MyProfile> {
   );
 
   final checkData = jsonDecode(checkResponse.body);
-  print('Ответ от сервера: $checkData'); // Для отладки
-
   if (checkData['status']?['ok'] != true) {
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -117,21 +113,22 @@ class _MyProfileState extends State<MyProfile> {
   }
 
   final user = checkData['user'];
+  final avatarUrl = user['avatar'];  // Получаем URL аватара
+  final login = user['name'];  // Получаем имя пользователя
+  final xp = user['xp'];  // Получаем XP
+  final achievementsCount = user['achievementsCount'];  // Получаем количество достижений
+  final photosCount = user['photosCount'];  // Получаем количество фотографий
 
-  // Подсчитываем количество достижений и фотографий по массивам
-  final achievements = user['achievements'] ?? [];
-  final photos = user['photos'] ?? [];
+  // Сохраняем URL аватарки в SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setString('avatar_url', avatarUrl ?? '');
 
   setState(() {
-    _login = user['name'] ?? 'Имя не указано';
-    _xp = user['xp'] ?? 0;
-    _avatarUrl = user['avatar'];
-
-    // Подсчитываем количество элементов в массивах
-    _achievementsCount = achievements.length;
-    _photosCount = photos.length;
-
-    _fullResponse = const JsonEncoder.withIndent('  ').convert(checkData);
+    _avatarUrl = avatarUrl;
+    _login = login ?? 'Загрузка...';
+    _xp = xp ?? 0;
+    _achievementsCount = achievementsCount ?? 0;
+    _photosCount = photosCount ?? 0;
   });
 }
 
@@ -168,28 +165,29 @@ class _MyProfileState extends State<MyProfile> {
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Сделать фото'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
+      builder:
+          (_) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Сделать фото'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Выбрать из галереи'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Выбрать из галереи'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -213,12 +211,14 @@ class _MyProfileState extends State<MyProfile> {
           child: CircleAvatar(
             radius: 60,
             backgroundColor: Colors.grey.shade300,
-            backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                ? CachedNetworkImageProvider(_avatarUrl!)
-                : null,
-            child: (_avatarUrl == null || _avatarUrl!.isEmpty)
-                ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                : null,
+            backgroundImage:
+                _avatarUrl != null && _avatarUrl!.isNotEmpty
+                    ? CachedNetworkImageProvider(_avatarUrl!)
+                    : null,
+            child:
+                (_avatarUrl == null || _avatarUrl!.isEmpty)
+                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                    : null,
           ),
         ),
       ],
@@ -226,197 +226,198 @@ class _MyProfileState extends State<MyProfile> {
   }
 
   Widget _buildInfoCard({
-  required String title,
-  required String value,
-  required IconData icon,
-  VoidCallback? onTap,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3D6FD3),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 32, color: Colors.white),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
-    ),
-  );
-}
-
-
-  @override
-  Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: Stack(
-        children: [
-          // Декоративные элементы
-          Positioned(
-            top: -50,
-            right: -30,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue.withOpacity(0.1),
-              ),
+    required String title,
+    required String value,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3D6FD3),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue.withOpacity(0.05),
-              ),
-            ),
-          ),
-
-          // Основное содержимое
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 32, color: Colors.white),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16),
-                // Кнопка назад
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.chevron_left,
-                      size: 40,
-                      color: Colors.black,
-                    ),
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MapPage()),
-                        (route) => false,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildAvatarWithXP(),
-                const SizedBox(height: 8),
                 Text(
-                  'XP: $_xp / 100',
+                  title,
                   style: const TextStyle(
                     fontFamily: 'Montserrat',
                     fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+                    color: Colors.white70,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  _login,
+                  value,
                   style: const TextStyle(
                     fontFamily: 'Montserrat',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 32),
-                _buildInfoCard(
-                  title: "Достижения",
-                  value: _achievementsCount.toString(),
-                  icon: Icons.emoji_events,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AchievmentsPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildInfoCard(
-                  title: "Фотоальбом",
-                  value: _photosCount.toString(),
-                  icon: Icons.photo_library,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const GalleryPage()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _logout,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5,
-                      shadowColor: Colors.red.withOpacity(0.3),
-                    ),
-                    child: const Text(
-                      'Выйти',
-                      style: TextStyle(
-                        fontFamily: 'Montserrat',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32), // дополнительный отступ внизу
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Декоративные элементы
+            Positioned(
+              top: -50,
+              right: -30,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -80,
+              left: -50,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue.withOpacity(0.05),
+                ),
+              ),
+            ),
+
+            // Основное содержимое
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 16),
+                  // Кнопка назад
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chevron_left,
+                        size: 40,
+                        color: Colors.black,
+                      ),
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MapPage()),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAvatarWithXP(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'XP: $_xp / 100',
+                    style: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _login,
+                    style: const TextStyle(
+                      fontFamily: 'Montserrat',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _buildInfoCard(
+                    title: "Достижения",
+                    value: _achievementsCount.toString(),
+                    icon: Icons.emoji_events,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AchievmentsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoCard(
+                    title: "Фотоальбом",
+                    value: _photosCount.toString(),
+                    icon: Icons.photo_library,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const GalleryPage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _logout,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 5,
+                        shadowColor: Colors.red.withOpacity(0.3),
+                      ),
+                      child: const Text(
+                        'Выйти',
+                        style: TextStyle(
+                          fontFamily: 'Montserrat',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32), // дополнительный отступ внизу
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

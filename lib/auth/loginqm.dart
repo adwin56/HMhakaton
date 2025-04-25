@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:cityquest/auth/initial.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cityquest/auth/myprofile.dart';
+import 'package:cityquest/auth/signupqm.dart'; // Импортируем экран регистрации
 
 class LoginQM extends StatefulWidget {
   const LoginQM({super.key});
@@ -56,8 +57,7 @@ class _LoginQMState extends State<LoginQM> {
     } else {
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            'Неверный логин или пароль'; // Изменено на текст как на картинке
+        _errorMessage = 'Неверный логин или пароль';
       });
     }
   }
@@ -68,7 +68,6 @@ class _LoginQMState extends State<LoginQM> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Декоративные элементы (круги)
           Positioned(
             top: -50,
             right: -30,
@@ -93,8 +92,6 @@ class _LoginQMState extends State<LoginQM> {
               ),
             ),
           ),
-
-          // Декоративные линии
           Positioned(
             top: 100,
             left: 20,
@@ -119,22 +116,17 @@ class _LoginQMState extends State<LoginQM> {
               ),
             ),
           ),
-
-          // Основное содержимое
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // SVG логотип
                   SvgPicture.asset(
                     'assets/IconLogoPage.svg',
                     height: 160,
                   ),
                   const SizedBox(height: 1),
-
-                  // Заголовок
                   const Text(
                     'CityQuest',
                     textAlign: TextAlign.center,
@@ -146,8 +138,6 @@ class _LoginQMState extends State<LoginQM> {
                     ),
                   ),
                   const SizedBox(height: 48),
-
-                  // Поле логина
                   TextField(
                     controller: _usernameController,
                     style: const TextStyle(fontFamily: 'Montserrat'),
@@ -168,7 +158,6 @@ class _LoginQMState extends State<LoginQM> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Поле пароля с сообщением об ошибке под ним
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -180,15 +169,15 @@ class _LoginQMState extends State<LoginQM> {
                           labelText: 'Пароль',
                           labelStyle: TextStyle(
                             fontFamily: 'Montserrat',
-                            color: _errorMessage.isNotEmpty 
-                                ? Colors.red // Красный цвет label при ошибке
+                            color: _errorMessage.isNotEmpty
+                                ? Colors.red
                                 : Colors.grey,
                           ),
                           prefixIcon: Icon(
-                            Icons.lock_outline, 
+                            Icons.lock_outline,
                             size: 20,
-                            color: _errorMessage.isNotEmpty 
-                                ? Colors.red // Красный цвет иконки при ошибке
+                            color: _errorMessage.isNotEmpty
+                                ? Colors.red
                                 : null,
                           ),
                           suffixIcon: IconButton(
@@ -197,8 +186,8 @@ class _LoginQMState extends State<LoginQM> {
                                   ? Icons.visibility_off
                                   : Icons.visibility,
                               size: 20,
-                              color: _errorMessage.isNotEmpty 
-                                  ? Colors.red // Красный цвет иконки при ошибке
+                              color: _errorMessage.isNotEmpty
+                                  ? Colors.red
                                   : null,
                             ),
                             onPressed: () {
@@ -210,24 +199,24 @@ class _LoginQMState extends State<LoginQM> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                              color: _errorMessage.isNotEmpty 
-                                  ? Colors.red // Красная обводка при ошибке
+                              color: _errorMessage.isNotEmpty
+                                  ? Colors.red
                                   : Colors.grey,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                              color: _errorMessage.isNotEmpty 
-                                  ? Colors.red // Красная обводка при ошибке
+                              color: _errorMessage.isNotEmpty
+                                  ? Colors.red
                                   : Colors.grey,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                              color: _errorMessage.isNotEmpty 
-                                  ? Colors.red // Красная обводка при ошибке
+                              color: _errorMessage.isNotEmpty
+                                  ? Colors.red
                                   : Colors.blue,
                               width: 2,
                             ),
@@ -252,10 +241,7 @@ class _LoginQMState extends State<LoginQM> {
                         ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Кнопка входа
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -269,25 +255,38 @@ class _LoginQMState extends State<LoginQM> {
                         elevation: 5,
                         shadowColor: Colors.blue.withOpacity(0.3),
                       ),
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Text(
-                                'Войти',
-                                style: TextStyle(
-                                  fontFamily: 'Montserrat',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
+                            )
+                          : const Text(
+                              'Войти',
+                              style: TextStyle(
+                                fontFamily: 'Montserrat',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Переход на страницу регистрации
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignupQM()),
+                      );
+                    },
+                    child: const Text(
+                      'Нет аккаунта? Зарегистрироваться',
+                      style: TextStyle(color: Colors.blue),
                     ),
                   ),
                 ],

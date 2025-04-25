@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:convert';
 import 'auth/initial.dart';
+import 'package:mime/mime.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mime/mime.dart'; // Добавляем импорт
 import 'package:shared_preferences/shared_preferences.dart';
 
 class POIDetailPage extends StatefulWidget {
@@ -19,6 +19,7 @@ class POIDetailPage extends StatefulWidget {
 
 class _POIDetailPageState extends State<POIDetailPage> {
   Map<String, dynamic>? _poiDetails;
+  String? _ptoken;
 
   @override
   void initState() {
@@ -26,18 +27,13 @@ class _POIDetailPageState extends State<POIDetailPage> {
     _loadPOIDetails();
   }
 
-  String? _ptoken;
-
   // Функция для загрузки данных по POI
   Future<void> _loadPOIDetails() async {
-    print("Айди POI: ${widget.id}");
     final response = await http.post(
       Uri.parse('http://31.163.205.174:3000/api/load'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'id': widget.id}),
     );
-
-    print('Ответ сервера: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -55,27 +51,22 @@ class _POIDetailPageState extends State<POIDetailPage> {
         };
       });
     } else {
-      print('Ошибка при получении данных: ${response.statusCode}');
+      _showError('Ошибка при получении данных: ${response.statusCode}');
     }
   }
 
+  // Функция для получения имени типа задания
   String getTaskTypeName(int type) {
-    if (type >= 0) {
-      return 'Квиз';
-    } else if (type == -1) {
-      return 'Фото';
-    } else if (type == -2) {
-      return 'Мини-игра';
-    } else {
-      return 'Неизвестный тип';
+    switch (type) {
+      case 0: return 'Квиз';
+      case -1: return 'Фото';
+      case -2: return 'Мини-игра';
+      default: return 'Неизвестный тип';
     }
   }
 
-  void _showTaskDialog(
-    String question,
-    List<String> options,
-    int correctIndex,
-  ) {
+  // Показ диалога с вопросом и возможными ответами
+  void _showTaskDialog(String question, List<String> options, int correctIndex) {
     showDialog(
       context: context,
       builder: (context) {
@@ -83,104 +74,78 @@ class _POIDetailPageState extends State<POIDetailPage> {
           title: Text(question),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children:
-                options.asMap().entries.map((entry) {
-                  final index = entry.key + 1; // Теперь индексы начинаются с 1
-                  final text = entry.value;
-                  return ListTile(
-                    title: Text('$index. $text'),
-                    onTap: () async {
-                      Navigator.pop(context); // Закрываем выбор ответа
-                      final isCorrect =
-                          index == correctIndex + 1; // Корректируем проверку
-                      await _endTask(
-                        answer: index,
-                      ); // Отправляем правильный индекс
-                      showDialog(
-                        context: context,
-                        builder:
-                            (_) => AlertDialog(
-                              title: Text(isCorrect ? 'Верно!' : 'Неверно'),
-                              content: Text(
-                                isCorrect
-                                    ? 'Ты ответил правильно!'
-                                    : 'Правильный ответ: ${options[correctIndex]}',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).pop();
-                                  },
-                                  child: const Text('OK'),
-                                ),
-                              ],
-                            ),
-                      );
-                    },
-                  );
-                }).toList(),
+            children: options.asMap().entries.map((entry) {
+              final index = entry.key + 1; // Индексы начинаются с 1
+              final text = entry.value;
+              return ListTile(
+                title: Text('$index. $text'),
+                onTap: () async {
+                  Navigator.pop(context); // Закрываем выбор ответа
+                  final isCorrect = index == correctIndex + 1; // Проверка правильности
+                  await _endTask(answer: index); // Отправляем ответ
+                  _showResultDialog(isCorrect, options[correctIndex]);
+                },
+              );
+            }).toList(),
           ),
         );
       },
     );
   }
 
+  // Показ диалога об ошибке
   void _showError(String message) {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('Ошибка'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text('Ошибка'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+            },
+            child: const Text('OK'),
           ),
+        ],
+      ),
     );
   }
 
+  // Обработка ответа после выполнения задания
   void _processEndResponse(String raw) {
-    print('Response end-task: $raw');
     final responseData = json.decode(raw);
     final status = responseData['status'];
 
     if (status['ok']) {
-      final xp = status['xp']; // Получаем количество XP
-      _showResultDialog(true, xp);
+      final xp = status['xp'];
+      _showResultDialog(true, xp.toString());
     } else {
-      // Обработка ошибок
       final message = status['message'] ?? 'Неизвестная ошибка';
-      _showResultDialog(false, 0, message);
+      _showResultDialog(false, message);
     }
   }
 
-  void _showResultDialog(bool isSuccess, int xp, [String? message]) {
+  // Показ диалога с результатом выполнения задания
+  void _showResultDialog(bool isSuccess, String result) {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text(isSuccess ? 'Задание выполнено!' : 'Ошибка'),
-            content: Text(
-              isSuccess ? 'Ты получил $xp XP!' : 'Ошибка: $message',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('ОК'),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: Text(isSuccess ? 'Задание выполнено!' : 'Ошибка'),
+        content: Text(
+          isSuccess ? 'Ты получил $result XP!' : 'Ошибка: $result',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ОК'),
           ),
+        ],
+      ),
     );
   }
 
+  // Обработка фото-задания
   void _showPhotoTaskDialog() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
@@ -188,130 +153,85 @@ class _POIDetailPageState extends State<POIDetailPage> {
     if (pickedFile != null) {
       final File imageFile = File(pickedFile.path);
       await _endTask(answer: -1, image: imageFile);
-
-      // TODO: Отправка фото на сервер
-      print('Фото сделано: ${imageFile.path}');
-
-      // Покажем диалог, что фото принято
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text('Фото сохранено'),
-              content: const Text('Фото успешно сделано!'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('ОК'),
-                ),
-              ],
-            ),
-      );
+      _showResultDialog(true, 'Фото успешно сделано!');
     } else {
       _showError('Фото не было сделано');
     }
   }
 
-  // Функция для получения токена из SharedPreferences
+  // Получение токена из SharedPreferences
   Future<String> _getTokenFromStorage() async {
     String? token = TokenManager.token;
     if (token != null) {
-      return token; // Возвращаем токен, если он не null
+      return token;
     } else {
-      throw Exception(
-        "Токен не найден",
-      ); // Выбрасываем ошибку, если токен не найден
+      throw Exception("Токен не найден");
     }
   }
 
+  // Начало выполнения задания
   Future<void> _startTask() async {
-    print('Отправка запроса на /api/start-task');
+    try {
+      final token = await _getTokenFromStorage();
 
-    // Получаем токен из SharedPreferences
-    final token = await _getTokenFromStorage();
+      final response = await http.post(
+        Uri.parse('http://31.163.205.174:3000/api/start-task'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'id': widget.id, 'token': token}),
+      );
 
-    final response = await http.post(
-      Uri.parse('http://31.163.205.174:3000/api/start-task'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'id': widget.id, 'token': token}),
-    );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
 
-    print('Ответ от сервера: ${response.body}'); // Логируем ответ
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-
-      if (data['status']['ok'] == true && data['task'] != null) {
-        final taskType = _poiDetails?['tasktype'];
-
-        if (taskType == -1) {
-          // Фото-задание
-          _ptoken = data['ptoken']; // Получаем ptoken для фото
-          print('Получен ptoken для фото задания: $_ptoken');
-          _showPhotoTaskDialog(); // Показываем диалог фото
-        } else if (taskType != null && taskType >= 0) {
-          // Квиз
-          final task = data['task'];
-          final question = task['quiz']['quest'];
-          final options = List<String>.from(task['quiz']['res']);
-          final correctIndex =
-              task['answer'] - 1; // Учитываем, что теперь ответы начинаются с 1
-          _ptoken = data['ptoken'];
-          print('Получен ptoken: $_ptoken для задания: ${widget.id}');
-
-          _showTaskDialog(question, options, correctIndex);
+        if (data['status']['ok'] == true && data['task'] != null) {
+          final taskType = _poiDetails?['tasktype'];
+          if (taskType == -1) {
+            _ptoken = data['ptoken'];
+            _showPhotoTaskDialog();
+          } else if (taskType >= 0) {
+            final task = data['task'];
+            final question = task['quiz']['quest'];
+            final options = List<String>.from(task['quiz']['res']);
+            final correctIndex = task['answer'] - 1;
+            _ptoken = data['ptoken'];
+            _showTaskDialog(question, options, correctIndex);
+          } else {
+            _showError('Тип задания пока не поддерживается');
+          }
         } else {
-          _showError('Тип задания пока не поддерживается');
+          _showError('Ошибка при получении задания: ${data['status']['message']}');
         }
       } else {
-        _showError(
-          'Ошибка при получении задания: ${data['status']['message']}',
-        );
+        _showError('Ошибка подключения: ${response.statusCode}');
       }
-    } else {
-      _showError('Ошибка подключения: ${response.statusCode}');
+    } catch (e) {
+      _showError('Ошибка: $e');
     }
   }
 
+  // Завершение задания
   Future<void> _endTask({required int answer, File? image}) async {
     if (_ptoken == null || _ptoken!.isEmpty) {
       _showError('Ошибка: ptoken не получен');
-      print("Ptoken не получен");
       return;
     }
-    print('ptoken перед отправкой запроса: $_ptoken');
 
     final uri = Uri.parse('http://31.163.205.174:3000/api/end-task');
-
     Map<String, dynamic> requestBody = {"ptoken": _ptoken!, "answer": answer};
 
     if (image != null) {
-      String? mimeType =
-          lookupMimeType(image.path) ?? 'application/octet-stream';
-      var request =
-          http.MultipartRequest('POST', uri)
-            ..fields['ptoken'] = _ptoken!
-            ..fields['answer'] = answer.toString()
-            ..files.add(
-              await http.MultipartFile.fromPath(
-                'photo',
-                image.path,
-                contentType:
-                    mimeType != null ? MediaType.parse(mimeType) : null,
-              ),
-            );
+      String? mimeType = lookupMimeType(image.path) ?? 'application/octet-stream';
+      var request = http.MultipartRequest('POST', uri)
+        ..fields['ptoken'] = _ptoken!
+        ..fields['answer'] = answer.toString()
+        ..files.add(await http.MultipartFile.fromPath('photo', image.path, contentType: mimeType != null ? MediaType.parse(mimeType) : null));
 
-      print('== Отправка запроса на /end-task с фото ==');
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
-      _processEndResponse(responseBody); // Логируем и обрабатываем ответ
+      _processEndResponse(responseBody);
     } else {
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(requestBody),
-      );
-      _processEndResponse(response.body); // Логируем и обрабатываем ответ
+      final response = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: json.encode(requestBody));
+      _processEndResponse(response.body);
     }
   }
 
@@ -326,8 +246,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
 
     final poi = _poiDetails!;
     final taskType = poi['tasktype'];
-    final hasTask =
-        taskType != null && (taskType >= 0 || taskType == -1 || taskType == -2);
+    final hasTask = taskType != null && (taskType >= 0 || taskType == -1 || taskType == -2);
 
     return Scaffold(
       appBar: AppBar(title: Text(poi['name'])),
@@ -336,30 +255,18 @@ class _POIDetailPageState extends State<POIDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              poi['name'],
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            Text(poi['name'], style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Montserrat')),
             const SizedBox(height: 10),
-            Text(poi['description'], style: const TextStyle(fontSize: 16)),
+            Text(poi['description'], style: TextStyle(fontSize: 16, fontFamily: 'Montserrat')),
             const SizedBox(height: 20),
             Image.network(poi['imageUrl'], height: 200, fit: BoxFit.cover),
             const SizedBox(height: 20),
-            Text(
-              'Категория: ${poi['category']}',
-              style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-            ),
+            Text('Категория: ${poi['category']}', style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, fontFamily: 'Montserrat')),
             const SizedBox(height: 20),
 
             // Тип задания
             if (hasTask) ...[
-              Text(
-                'Тип задания: ${getTaskTypeName(taskType)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text('Тип задания: ${getTaskTypeName(taskType)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Montserrat')),
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: _startTask,

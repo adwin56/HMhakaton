@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-
 import 'auth/myprofile.dart';
+import 'package:flutter/material.dart';
 
 /// Виджет-кнопка профиля с отображением прогресса XP вокруг аватарки.
 class GoToProfileButton extends StatelessWidget {
@@ -16,12 +15,16 @@ class GoToProfileButton extends StatelessWidget {
   /// Путь до картинки аватарки в ассетах.
   final String avatarAsset;
 
+  /// URL аватарки.
+  final String? avatarUrl;
+
   const GoToProfileButton({
     Key? key,
     required this.xp,
     required this.maxXp,
     this.size = 60.0,
     this.avatarAsset = 'assets/images/place.png',
+    this.avatarUrl, // Параметр для URL аватарки
   }) : super(key: key);
 
   @override
@@ -53,7 +56,9 @@ class GoToProfileButton extends StatelessWidget {
             // Аватарка внутри круга
             CircleAvatar(
               radius: (size - 8) / 2,
-              backgroundImage: AssetImage(avatarAsset),
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl!) // Используем URL, если он передан
+                  : AssetImage(avatarAsset) as ImageProvider, // Иначе — ассет
             ),
           ],
         ),

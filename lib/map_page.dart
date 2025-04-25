@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
 // Определяем модель POI
@@ -69,6 +70,7 @@ class _MapPageState extends State<MapPage> {
   String? _categoryIcon;
   Timer? _timer;
   final Distance _distance = Distance();
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -77,6 +79,7 @@ class _MapPageState extends State<MapPage> {
       Duration(seconds: 10),
       (_) => _updatePOIsAndCheck(),
     );
+    _loadAvatar(); // Загружаем аватарку
   }
 
   // Метод для получения POI по текущей позиции
@@ -110,6 +113,15 @@ class _MapPageState extends State<MapPage> {
         }
       }
     }
+  }
+
+  Future<void> _loadAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final avatarUrl = prefs.getString('avatar_url');
+
+    setState(() {
+      _avatarUrl = avatarUrl;
+    });
   }
 
   // Преобразование POI в маркеры для отображения на карте
@@ -209,10 +221,10 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  // Встроим улучшенную версию карточек POI и обновим слайдер
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Карта")),
       body: Stack(
         children: [
           FlutterMap(
@@ -230,8 +242,8 @@ class _MapPageState extends State<MapPage> {
                   marker: DefaultLocationMarker(
                     color: Colors.transparent,
                     child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/place.png',
+                      child: Image.network(
+                        _avatarUrl ?? 'assets/images/place.png',
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
@@ -245,56 +257,20 @@ class _MapPageState extends State<MapPage> {
                 ),
                 moveAnimationDuration: Duration.zero,
               ),
-              MarkerLayer(
-                markers:
-                    _isCategorySelected
-                        ? _markers
-                            .where(
-                              (poi) =>
-                                  poi['location'] != null &&
-                                  poi['location']['lon'] != null &&
-                                  poi['location']['lat'] != null,
-                            )
-                            .map((poi) {
-                              final lat = double.parse(
-                                poi['location']['lon'].toString(),
-                              );
-                              final lon = double.parse(
-                                poi['location']['lat'].toString(),
-                              );
-                              print(
-                                "Добавляем маркер: ${poi['name']}, lat: ${poi['location']['lat']}, lon: ${poi['location']['lon']}",
-                              );
-
-                              return Marker(
-                                width: 50.0,
-                                height: 50.0,
-                                point: LatLng(lat, lon),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    _showPOIModal(context, poi);
-                                  },
-                                  child: Image.asset(
-                                    _categoryIcon ?? 'assets/icons/default.png',
-                                    width: 40,
-                                    height: 40,
-                                  ),
-                                ),
-                              );
-                            })
-                            .toList()
-                        : [],
-              ),
               MarkerLayer(markers: _buildMarkers()),
             ],
           ),
           Positioned(
-            top: 16,
+            top: 60,
             right: 16,
-            child: GoToProfileButton(xp: 10, maxXp: 100),
+            child: GoToProfileButton(
+              xp: 10,
+              maxXp: 100,
+              avatarUrl: _avatarUrl, // Передаем URL аватарки
+            ),
           ),
           Positioned(
-            top: 16,
+            top: 60,
             left: 16,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -353,6 +329,7 @@ class _MapPageState extends State<MapPage> {
                         // Если категория выбрана, показываем POI этой категории
                         Expanded(
                           child: ListView.builder(
+                            controller: scrollController,
                             itemCount: _markers.length,
                             itemBuilder: (context, index) {
                               final poi = _markers[index];
@@ -363,25 +340,23 @@ class _MapPageState extends State<MapPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) => POIDetailPage(
-                                            id: poi['id'],
-                                            //name: poi['name'],
-                                            //imageUrl: poi['logo'],
-                                            //description:
-                                            //poi['description'] ??
-                                            //'Описание не доступно',
-                                          ),
+                                          (context) =>
+                                              POIDetailPage(id: poi['id']),
                                     ),
                                   );
                                 },
                                 child: Card(
+                                  elevation: 4.0, // Тень для карточки
                                   margin: const EdgeInsets.symmetric(
                                     vertical: 8.0,
-                                  ), // Пространство между POI
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
                                   child: Column(
                                     children: [
                                       Padding(
-                                        padding: const EdgeInsets.all(8.0),
+                                        padding: const EdgeInsets.all(12.0),
                                         child: Text(
                                           poi['name'],
                                           style: TextStyle(
@@ -390,12 +365,17 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                         ),
                                       ),
-                                      // Фиксированное соотношение сторон для фото
-                                      Image.network(
-                                        poi['logo'],
-                                        width: 200,
-                                        height: 150,
-                                        fit: BoxFit.cover,
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          poi['logo'],
+                                          width: double.infinity,
+                                          height: 180,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
                                       ),
                                     ],
                                   ),
@@ -425,7 +405,6 @@ class _MapPageState extends State<MapPage> {
                   ),
                 ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            // Ограничиваем область слайдера, как на iPhone
             parallaxEnabled: true,
             parallaxOffset: 0.5,
             backdropEnabled: true,
