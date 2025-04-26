@@ -257,6 +257,46 @@ class _MapPageState extends State<MapPage> {
                 ),
                 moveAnimationDuration: Duration.zero,
               ),
+              MarkerLayer(
+                markers:
+                _isCategorySelected
+                    ? _markers
+                    .where(
+                      (poi) =>
+                  poi['location'] != null &&
+                      poi['location']['lon'] != null &&
+                      poi['location']['lat'] != null,
+                )
+                    .map((poi) {
+                  final lat = double.parse(
+                    poi['location']['lon'].toString(),
+                  );
+                  final lon = double.parse(
+                    poi['location']['lat'].toString(),
+                  );
+                  print(
+                    "Добавляем маркер: ${poi['name']}, lat: ${poi['location']['lat']}, lon: ${poi['location']['lon']}",
+                  );
+
+                  return Marker(
+                    width: 50.0,
+                    height: 50.0,
+                    point: LatLng(lat, lon),
+                    child: GestureDetector(
+                      onTap: () {
+                        _showPOIModal(context, poi);
+                      },
+                      child: Image.asset(
+                        _categoryIcon ?? 'assets/icons/default.png',
+                        width: 40,
+                        height: 40,
+                      ),
+                    ),
+                  );
+                })
+                    .toList()
+                    : [],
+              ),
               MarkerLayer(markers: _buildMarkers()),
             ],
           ),

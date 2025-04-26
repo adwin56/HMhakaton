@@ -3,6 +3,7 @@ import 'auth/initial.dart'; // Класс для работы с токеном
 import 'auth/signupqm.dart'; // Экран регистрации
 import 'map_page.dart'; // Карта
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await TokenManager.init(); // Загружаем токен из памяти
