@@ -87,7 +87,7 @@ class _MapPageState extends State<MapPage> {
     // 1) Получаем новые POI
     Position pos = await Geolocator.getCurrentPosition();
     final resp = await http.post(
-      Uri.parse('http://31.163.205.174:3000/api/find-by-position'),
+      Uri.parse('http://2.56.89.51:3050/api/find-by-position'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'lat': pos.latitude, 'lon': pos.longitude}),
     );
@@ -234,9 +234,11 @@ class _MapPageState extends State<MapPage> {
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                urlTemplate: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+                //subdomains: ['a', 'b', 'c'],
                 userAgentPackageName: 'com.example.app',
               ),
+
               CurrentLocationLayer(
                 style: LocationMarkerStyle(
                   marker: DefaultLocationMarker(
@@ -500,7 +502,7 @@ class _MapPageState extends State<MapPage> {
     print("Загружаем данные для категории: $category");
 
     final response = await http.post(
-      Uri.parse('http://31.163.205.174:3000/api/load-from-all'),
+      Uri.parse('http://2.56.89.51:3050/api/load-from-all'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'category': category}),
     );

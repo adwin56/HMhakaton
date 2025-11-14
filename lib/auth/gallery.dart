@@ -34,7 +34,7 @@ class _GalleryPageState extends State<GalleryPage> {
 
     final requestBody = jsonEncode({"id": -1, "token": token});
 
-    final checkTokenUrl = Uri.parse('http://31.163.205.174:3000/api/get-user');
+    final checkTokenUrl = Uri.parse('http://2.56.89.51:3050/api/get-user');
 
     final response = await http.post(
       checkTokenUrl,

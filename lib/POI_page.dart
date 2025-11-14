@@ -30,7 +30,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
   // Функция для загрузки данных по POI
   Future<void> _loadPOIDetails() async {
     final response = await http.post(
-      Uri.parse('http://31.163.205.174:3000/api/load'),
+      Uri.parse('http://2.56.89.51:3050/api/load'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'id': widget.id}),
     );
@@ -175,7 +175,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
       final token = await _getTokenFromStorage();
 
       final response = await http.post(
-        Uri.parse('http://31.163.205.174:3000/api/start-task'),
+        Uri.parse('http://2.56.89.51:3050/api/start-task'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'id': widget.id, 'token': token}),
       );
@@ -216,7 +216,7 @@ class _POIDetailPageState extends State<POIDetailPage> {
       return;
     }
 
-    final uri = Uri.parse('http://31.163.205.174:3000/api/end-task');
+    final uri = Uri.parse('http://2.56.89.51:3050/api/end-task');
     Map<String, dynamic> requestBody = {"ptoken": _ptoken!, "answer": answer};
 
     if (image != null) {

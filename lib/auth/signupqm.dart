@@ -30,7 +30,7 @@ class _SignupQMState extends State<SignupQM> {
       _message = null;
     });
 
-    final url = Uri.parse('http://31.163.205.174:3000/api/register');
+    final url = Uri.parse('http://2.56.89.51:3050/api/register');
     final body = jsonEncode({
       'login': _loginController.text,
       'mail': _emailController.text,

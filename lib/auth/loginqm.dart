@@ -37,7 +37,7 @@ class _LoginQMState extends State<LoginQM> {
       return;
     }
 
-    final loginUrl = Uri.parse('http://31.163.205.174:3000/api/login');
+    final loginUrl = Uri.parse('http://2.56.89.51:3050/api/login');
     final response = await http.post(
       loginUrl,
       headers: {'Content-Type': 'application/json'},

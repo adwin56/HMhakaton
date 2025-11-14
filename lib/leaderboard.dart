@@ -19,7 +19,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
   // Функция для отправки запроса и загрузки данных
   Future<void> _loadLeaders() async {
-    final uri = Uri.parse('http://31.163.205.174:3000/api/get-leaders');
+    final uri = Uri.parse('http://2.56.89.51:3050/api/get-leaders');
     try {
       final response = await http.post(uri);
 

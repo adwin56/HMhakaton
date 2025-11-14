@@ -66,7 +66,7 @@ class _MyProfileState extends State<MyProfile> {
   Future<void> _uploadAvatar() async {
     if (_avatarFile == null || _token == null) return;
 
-    final uri = Uri.parse('http://31.163.205.174:3000/api/set-avatar');
+    final uri = Uri.parse('http://2.56.89.51:3050/api/set-avatar');
     final request = http.MultipartRequest('POST', uri)
       ..fields['token'] = _token!;
 
@@ -95,7 +95,7 @@ class _MyProfileState extends State<MyProfile> {
   Future<void> _fetchAndUpdateProfile() async {
   if (_token == null) return;
 
-  final checkTokenUrl = Uri.parse('http://31.163.205.174:3000/api/get-user');
+  final checkTokenUrl = Uri.parse('http://2.56.89.51:3050/api/get-user');
   final checkResponse = await http.post(
     checkTokenUrl,
     headers: {'Content-Type': 'application/json'},
