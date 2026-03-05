@@ -1,5 +1,6 @@
-import 'auth/myprofile.dart';
+import 'my_profile_page.dart';
 import 'package:flutter/material.dart';
+import 'package:cityquest/сore/user_state.dart';
 
 /// Виджет-кнопка профиля с отображением прогресса XP вокруг аватарки.
 class GoToProfileButton extends StatelessWidget {
@@ -18,13 +19,16 @@ class GoToProfileButton extends StatelessWidget {
   /// URL аватарки.
   final String? avatarUrl;
 
+  final dynamic onReturn;
+
   const GoToProfileButton({
     Key? key,
     required this.xp,
     required this.maxXp,
     this.size = 60.0,
     this.avatarAsset = 'assets/images/place.png',
-    this.avatarUrl, // Параметр для URL аватарки
+    this.avatarUrl,
+    this.onReturn,
   }) : super(key: key);
 
   @override
@@ -33,12 +37,13 @@ class GoToProfileButton extends StatelessWidget {
     final double progress = (maxXp > 0) ? (xp / maxXp).clamp(0.0, 1.0) : 0.0;
 
     return GestureDetector(
-      onTap: () {
-        // Навигация на страницу профиля
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const MyProfile()),
+          MaterialPageRoute(builder: (_) => const MyProfilePage()),
         );
+
+        onReturn?.call();
       },
       child: SizedBox(
         width: size,
@@ -54,12 +59,27 @@ class GoToProfileButton extends StatelessWidget {
               valueColor: const AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 33, 243, 68)),
             ),
             // Аватарка внутри круга
-            CircleAvatar(
-              radius: (size - 8) / 2,
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl!) // Используем URL, если он передан
-                  : AssetImage(avatarAsset) as ImageProvider, // Иначе — ассет
-            ),
+            ValueListenableBuilder<String?>(
+              valueListenable: UserState.avatarUrl,
+              builder: (context, avatarUrl, _) {
+
+                if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                  print('GoToProfileButton: Используем NetworkImage -> $avatarUrl');
+
+                  return CircleAvatar(
+                    radius: (size - 8) / 2,
+                    backgroundImage: NetworkImage(avatarUrl),
+                  );
+                }
+
+                print('GoToProfileButton: Используем ассет -> $avatarAsset');
+
+                return CircleAvatar(
+                  radius: (size - 8) / 2,
+                  backgroundImage: AssetImage(avatarAsset),
+                );
+              },
+            )
           ],
         ),
       ),

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'auth/initial.dart'; // Класс для работы с токеном
-import 'auth/signupqm.dart'; // Экран регистрации
-import 'map_page.dart'; // Карта
-
+import 'features/map/map_page.dart'; // Карта
+import 'package:cityquest/auth/presentation/signup_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await TokenManager.init(); // Загружаем токен из памяти
+
+  await TokenManager.init(); // загружаем токен из SharedPreferences
+
   runApp(const MyApp());
 }
 
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
     final isAuthenticated = TokenManager.token != null;
 
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'CityQuest',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
